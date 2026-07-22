@@ -22,6 +22,16 @@ jobs:
           SHORT_SHA="${COMMIT_SHA:0:7}"
           MESSAGE=$(printf 'New commit in alpha\n%s: %s\nBy: %s\n%s' \
             "$SHORT_SHA" "$COMMIT_MESSAGE" "$COMMIT_AUTHOR" "$COMMIT_URL")
-          curl -s -X POST "https://crm.minta24.ru/rest/${BITRIX_USER_ID}/${BITRIX_TOKEN}/im.message.add.json" \
+
+          RESPONSE=$(curl -s -w '\n%{http_code}' -X POST "https://crm.minta24.ru/rest/${BITRIX_USER_ID}/${BITRIX_TOKEN}/im.message.add.json" \
             --data-urlencode "DIALOG_ID=${BITRIX_DIALOG_ID}" \
-            --data-urlencode "MESSAGE=${MESSAGE}"
+            --data-urlencode "MESSAGE=${MESSAGE}")
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "$HTTP_BODY"
+
+          if [ "$HTTP_STATUS" -ge 400 ] || echo "$HTTP_BODY" | jq -e 'has("error")' > /dev/null 2>&1; then
+            echo "Bitrix24 notification failed (HTTP $HTTP_STATUS): $(echo "$HTTP_BODY" | jq -r '.error_description // .error // "unknown error"' 2>/dev/null)"
+            exit 1
+          fi
