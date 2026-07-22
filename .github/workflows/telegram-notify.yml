@@ -22,7 +22,6 @@ jobs:
           SHORT_SHA="${COMMIT_SHA:0:7}"
           MESSAGE=$(printf 'New commit in alpha\n%s: %s\nBy: %s\n%s' \
             "$SHORT_SHA" "$COMMIT_MESSAGE" "$COMMIT_AUTHOR" "$COMMIT_URL")
-          # curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
           curl -s -X POST "https://crm.minta24.ru/rest/${BITRIX_USER_ID}/${BITRIX_TOKEN}/im.message.add.json" \
             --data-urlencode "DIALOG_ID=${BITRIX_DIALOG_ID}" \
             --data-urlencode "MESSAGE=${MESSAGE}"
