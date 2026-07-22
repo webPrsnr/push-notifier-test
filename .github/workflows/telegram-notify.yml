@@ -20,8 +20,24 @@ jobs:
           COMMIT_URL: ${{ github.event.head_commit.url }}
         run: |
           SHORT_SHA="${COMMIT_SHA:0:7}"
-          MESSAGE=$(printf 'New commit in alpha\n%s: %s\nBy: %s\n%s' \
-            "$SHORT_SHA" "$COMMIT_MESSAGE" "$COMMIT_AUTHOR" "$COMMIT_URL")
+          COMMIT_TITLE=$(printf '%s' "$COMMIT_MESSAGE" | head -n1)
+
+          BRANCH_NAME=""
+          if printf '%s' "$COMMIT_TITLE" | grep -qP '^Merge pull request #\d+ from '; then
+            FROM_PART=$(printf '%s' "$COMMIT_TITLE" | sed -E 's/^Merge pull request #[0-9]+ from //')
+            BRANCH_NAME="${FROM_PART#*/}"
+          elif printf '%s' "$COMMIT_TITLE" | grep -qP "^Merge branch '"; then
+            BRANCH_NAME=$(printf '%s' "$COMMIT_TITLE" | sed -E "s/^Merge branch '([^']+)'.*/\1/")
+          fi
+
+          if [ -n "$BRANCH_NAME" ]; then
+            BRANCH_URL="https://github.com/${GITHUB_REPOSITORY}/tree/${BRANCH_NAME}"
+          else
+            BRANCH_URL="—"
+          fi
+
+          MESSAGE=$(printf '🚀 Новые изменения на alpha-ferrum:\n📝 Название: %s\n#️⃣ Хэш: %s\n👤 Автор: %s\n🌿 Ссылка на ветку: %s\n🔗 Ссылка на коммит: %s' \
+            "$COMMIT_TITLE" "$SHORT_SHA" "$COMMIT_AUTHOR" "$BRANCH_URL" "$COMMIT_URL")
 
           RESPONSE=$(curl -s -w '\n%{http_code}' -X POST "https://crm.minta24.ru/rest/${BITRIX_USER_ID}/${BITRIX_TOKEN}/im.message.add.json" \
             --data-urlencode "DIALOG_ID=${BITRIX_DIALOG_ID}" \
