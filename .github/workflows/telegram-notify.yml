@@ -1,28 +1,26 @@
-name: Telegram merge notification
+name: Telegram push notification
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
       - alpha
 
 jobs:
   notify:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Send Telegram notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          PR_SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_AUTHOR: ${{ github.event.head_commit.author.name }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
         run: |
-          MESSAGE=$(printf 'Merged into alpha\n#%s: %s\nBy: %s\nBranch: %s -> alpha\n%s' \
-            "$PR_NUMBER" "$PR_TITLE" "$PR_AUTHOR" "$PR_SOURCE_BRANCH" "$PR_URL")
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          MESSAGE=$(printf 'New commit in alpha\n%s: %s\nBy: %s\n%s' \
+            "$SHORT_SHA" "$COMMIT_MESSAGE" "$COMMIT_AUTHOR" "$COMMIT_URL")
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "text=${MESSAGE}"
